@@ -12,6 +12,7 @@ public:
     CShape(const std::vector<Vertex>& vertices);
     const std::vector<Vertex>& GetVertices() const;
 
+    Vertex FindOppositeSupportPoint(const Vertex& point) const;
     Vertex FindMostExtremePoint();
 protected:
     std::vector<Vertex> m_Vertices;
