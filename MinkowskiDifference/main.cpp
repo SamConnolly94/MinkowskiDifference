@@ -10,6 +10,21 @@ using namespace std;
 constexpr int k_DebugRowCount = 5;
 constexpr int k_DebugColCount = 5;
 
+float area(Vector3 v1, Vector3 v2, Vector3 v3)
+{
+    return fabsf((v1.m_X * (v2.m_Y - v3.m_Y) + v2.m_X * (v3.m_Y - v1.m_Y) + v3.m_X * (v1.m_Y - v2.m_Y)) / 2.0f);
+}
+
+bool IsPointInTriangle(const Vector3& position, const Vertex& v1, const Vertex& v2, const Vertex& v3)
+{
+    float a = area(v1.m_Position, v2.m_Position, v3.m_Position);
+    float a1 = area(position, v2.m_Position, v3.m_Position);
+    float a2 = area(position, v1.m_Position, v3.m_Position);
+    float a3 = area(position, v1.m_Position, v2.m_Position);
+
+    return (a == a1 + a2 + a3);
+}
+
 void OutputShapeDebug(const CShape& shape, std::string title)
 {
     cout << endl << "===========================" << endl << title << endl << "===========================" << endl;
@@ -60,13 +75,13 @@ void OutputShapeDebug(const CShape& shape, std::string title)
 void PushVertexIfNotPresent(std::vector<Vertex>& result, float x, float y, float z)
 {
     Vertex a{ x, y, z };
-    if (std::find(result.begin(), result.end(), a) == result.end())
+    //if (std::find(result.begin(), result.end(), a) == result.end())
     {
         result.push_back(a);
     }
 }
 
-CShape CalculateMinkowskiDistance(const CShape& a, const CShape& b)
+CShape CalculateMinkowskiDifference(const CShape& a, const CShape& b)
 {
     // TODO:
     // We should be able to work out what size this should be.
@@ -101,15 +116,48 @@ CShape CalculateMinkowskiDistance(const CShape& a, const CShape& b)
 int main()
 {
     // Not using unique pointers purposefully, we know the size of an instance of CShape is X, we can get a tonne of them on the stack if we want.
-    CShape triangle({ Vertex{-5.0f, 5.0f, 0.0f}, Vertex{-5.0f, -5.0f, 0.0f}, Vertex{2.0f, 0.0, 0.0f} });
+    CShape triangle({ Vertex{-5.0f, 1.0f, 0.0f}, Vertex{-5.0f, -1.0f, 0.0f}, Vertex{-3.0f, 0.0f, 0.0f} });
     Vertex triangleSupportPoint = triangle.FindMostExtremePoint();
     OutputShapeDebug(triangle, "Triangle");
 
-    CShape square({ Vertex{ 0.0f, 2.0f, 0.0f }, Vertex{ 0.0f, -2.0f, 0.0f }, Vertex{ 2.0f, 2.0, 0.0f }, Vertex{2.0f, -2.0f, 0.0f} });
+    CShape square({ Vertex{ -2.0f, -2.0f, 0.0f }, Vertex{ 2.0f, -2.0f, 0.0f }, Vertex{ -2.0f, 2.0f, 0.0f }, Vertex{2.0f, 2.0f, 0.0f} });
     Vertex squareSupportPoint = square.FindOppositeSupportPoint(triangleSupportPoint);
     OutputShapeDebug(square, "Square");
 
-    CShape minkowskiDistance = CalculateMinkowskiDistance(triangle, square);
-    Vertex mostExtremeVertex = minkowskiDistance.FindMostExtremePoint();
-    OutputShapeDebug(minkowskiDistance, "Minkowski");
+    CShape minkowskiSupportPoints{ {triangleSupportPoint, squareSupportPoint} };
+    OutputShapeDebug(minkowskiSupportPoints, "Support Points");
+
+    CShape minkowskiSum = CalculateMinkowskiDifference(triangle, square);
+    Vertex mostExtremeVertex = minkowskiSum.FindMostExtremePoint();
+    OutputShapeDebug(minkowskiSum, "Minkowski");
+
+    bool originInPoint = false;
+    int i = 0;
+    for (Vertex v : minkowskiSum.GetVertices())
+    {
+        if (v == squareSupportPoint || v == triangleSupportPoint)
+        {
+            continue;
+        }
+
+        CShape testTriangle = CShape({ v.m_Position, triangleSupportPoint.m_Position, squareSupportPoint.m_Position });
+        bool intersection = IsPointInTriangle(Vector3(0.0f, 0.0f, 0.0f), v, triangleSupportPoint, squareSupportPoint);
+        if (intersection)
+        {
+            cout << "Testing shape " << i << endl;
+            OutputShapeDebug(testTriangle, "Testing shape: ");
+            cout << "INTERSECT!" << endl;
+        }
+        originInPoint = originInPoint || intersection;
+        i++;
+    }
+
+    if (originInPoint)
+    {
+        cout << "These shapes intersect" << endl;
+    }
+    else
+    {
+        cout << "These shapes do NOT intersect" << endl;
+    }
 }

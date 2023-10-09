@@ -19,17 +19,10 @@ const std::vector<Vertex>& CShape::GetVertices() const
 
 Vertex CShape::FindOppositeSupportPoint(const Vertex& point) const
 {
-    float dotProd = 1.0f;
-    Vector3 dir = point.m_Position.GetNormalised();
+    const Vector3 dir = point.m_Position.GetNormalised();
 
     auto result = std::min_element(m_Vertices.begin(), m_Vertices.end(), [&](const Vertex& a, const Vertex& b) {
-        float newDotProd = Vector3::DotProd(a.m_Position.GetNormalised(), dir);
-        if (newDotProd < dotProd)
-        {
-            dotProd = newDotProd;
-            return true;
-        }
-        return false;
+        return Vector3::DotProd(a.m_Position.GetNormalised(), dir) < Vector3::DotProd(b.m_Position.GetNormalised(), dir);
         });
     return *(result);
 }
