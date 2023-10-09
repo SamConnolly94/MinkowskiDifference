@@ -34,3 +34,8 @@ Vertex CShape::FindMostExtremePoint()
         });
     return *it;
 }
+
+CShape CShape::operator=(const CShape& rhs) const
+{
+    return CShape(rhs.m_Vertices);
+}

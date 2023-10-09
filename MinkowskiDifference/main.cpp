@@ -72,9 +72,9 @@ void OutputShapeDebug(const CShape& shape, std::string title)
     cout << endl;
 }
 
-void PushVertexIfNotPresent(std::vector<Vertex>& result, float x, float y, float z)
+void PushVertexIfNotPresent(std::vector<Vertex>& result, Vector3 pos)
 {
-    Vertex a{ x, y, z };
+    Vertex a{ pos.m_X, pos.m_Y, pos.m_Z };
     //if (std::find(result.begin(), result.end(), a) == result.end())
     {
         result.push_back(a);
@@ -89,24 +89,40 @@ CShape CalculateMinkowskiDifference(const CShape& a, const CShape& b)
     // At the very least, reserve the memory we'll take up.
     std::vector<Vertex> vertices;
 
-    for (const auto& leftVertex : a.GetVertices())
+    bool aHasMoreVertices = a.GetVertices().size() > b.GetVertices().size();
+    CShape outer = aHasMoreVertices ? a : b;
+    CShape inner = aHasMoreVertices ? b : a;
+
+    int outerIndex = 0;
+    int innerIndex = 0;
+
+    while (true)
     {
-        for (const auto rightVertex : b.GetVertices())
+        Vertex v1 = outer.GetVertices()[outerIndex];
+        Vertex v2 = inner.GetVertices()[innerIndex];
+
+        Vector3 pos = v1.m_Position - v2.m_Position;
+        PushVertexIfNotPresent(vertices, pos);
+
+        if (innerIndex < inner.GetVertices().size() - 1)
         {
-            float xX = leftVertex.m_Position.m_X - rightVertex.m_Position.m_X;
-            float xY = leftVertex.m_Position.m_X - rightVertex.m_Position.m_Y;
-            float xZ = leftVertex.m_Position.m_X - rightVertex.m_Position.m_Z;
-            PushVertexIfNotPresent(vertices, xX, xY, xZ);
+            innerIndex++;
+            v2 = inner.GetVertices()[innerIndex];
+            pos = v1.m_Position - v2.m_Position;
+            PushVertexIfNotPresent(vertices, pos);
+        }
 
-            float yX = leftVertex.m_Position.m_Y - rightVertex.m_Position.m_X;
-            float yY = leftVertex.m_Position.m_Y - rightVertex.m_Position.m_Y;
-            float yZ = leftVertex.m_Position.m_Y - rightVertex.m_Position.m_Z;
-            PushVertexIfNotPresent(vertices, yX, yY, yZ);
+        if (outerIndex < outer.GetVertices().size() - 1)
+        {
+            outerIndex++;
+            v1 = outer.GetVertices()[outerIndex];
+            pos = v1.m_Position - v2.m_Position;
+            PushVertexIfNotPresent(vertices, pos);
+        }
 
-            float zX = leftVertex.m_Position.m_Z - rightVertex.m_Position.m_X;
-            float zY = leftVertex.m_Position.m_Z - rightVertex.m_Position.m_Y;
-            float zZ = leftVertex.m_Position.m_Z - rightVertex.m_Position.m_Z;
-            PushVertexIfNotPresent(vertices, zX, zY, zZ);
+        if (outerIndex >= outer.GetVertices().size() - 1 && innerIndex >= inner.GetVertices().size() - 1)
+        {
+            break;
         }
     }
 
@@ -116,11 +132,11 @@ CShape CalculateMinkowskiDifference(const CShape& a, const CShape& b)
 int main()
 {
     // Not using unique pointers purposefully, we know the size of an instance of CShape is X, we can get a tonne of them on the stack if we want.
-    CShape triangle({ Vertex{-5.0f, 1.0f, 0.0f}, Vertex{-5.0f, -1.0f, 0.0f}, Vertex{-3.0f, 0.0f, 0.0f} });
+    CShape triangle({ Vertex{-2.0f, 2.0f, 0.0f}, Vertex{-2.0f, -2.0f, 0.0f}, Vertex{-1.0f, 0.0f, 0.0f} });
     Vertex triangleSupportPoint = triangle.FindMostExtremePoint();
     OutputShapeDebug(triangle, "Triangle");
 
-    CShape square({ Vertex{ -2.0f, -2.0f, 0.0f }, Vertex{ 2.0f, -2.0f, 0.0f }, Vertex{ -2.0f, 2.0f, 0.0f }, Vertex{2.0f, 2.0f, 0.0f} });
+    CShape square({ Vertex{ 0.0f, 0.0f, 0.0f }, Vertex{ 0.0f, -2.0f, 0.0f }, Vertex{ 2.0f, 0.0f, 0.0f }, Vertex{2.0f, -2.0f, 0.0f} });
     Vertex squareSupportPoint = square.FindOppositeSupportPoint(triangleSupportPoint);
     OutputShapeDebug(square, "Square");
 

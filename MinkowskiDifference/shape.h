@@ -14,6 +14,9 @@ public:
 
     Vertex FindOppositeSupportPoint(const Vertex& point) const;
     Vertex FindMostExtremePoint();
+
+    CShape operator=(const CShape& rhs) const;
+
 protected:
     std::vector<Vertex> m_Vertices;
 };
