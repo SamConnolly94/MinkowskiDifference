@@ -56,7 +56,10 @@ void CShape::ReorderPolygon()
 {
     std::sort(m_Vertices.begin(), m_Vertices.end(), [](const Vertex a, const Vertex b) {
         bool yIsIdentical = a.m_Position.m_Y == b.m_Position.m_Y;
-        return a.m_Position.m_Y < b.m_Position.m_Y || (yIsIdentical && a.m_Position.m_X < b.m_Position.m_X) || ((yIsIdentical && a.m_Position.m_X == a.m_Position.m_X) && a.m_Position.m_Z < b.m_Position.m_Z);
+        bool xIsIdentical = a.m_Position.m_X == b.m_Position.m_X;
+        return a.m_Position.m_Y < b.m_Position.m_Y || 
+            (yIsIdentical && a.m_Position.m_X < b.m_Position.m_X) || 
+            ((yIsIdentical && xIsIdentical) && a.m_Position.m_Z < b.m_Position.m_Z);
         });
 }
 
@@ -72,9 +75,6 @@ std::ostream& operator<<(std::ostream& os, const CShape& shape)
 
 bool CShape::IntersectsWith(const CShape& other)
 {
-    //CShape minkowskiShape = CalculateMinkowskiShape(MinkowskiType::Difference, other);
-    //std::cout << minkowskiShape << std::endl;
-
     CShape minkowskiDifference = CalculateMinkowskiShape(MinkowskiType::Difference, other);
     std::cout << minkowskiDifference << std::endl;
 
@@ -87,8 +87,8 @@ bool CShape::IntersectsWith(const CShape& other)
 
     // NOTE:
     // At the moment this is pretty innefficient. There's something called the GJK algorithm, which should
-    // drastically improve the search time. Right now we're just brute forcing it to check every point for 
-    // an intersection. Check out https://youtu.be/ajv46BSqcK4 for a good vid.
+    // drastically improve the search time. Right now I'm just brute forcing it to check every point for 
+    // an intersection. Check out https://youtu.be/ajv46BSqcK4 for a good explanation.
     for (Vertex v1 : minkowskiDifference.m_Vertices)
     {
             CTriangle testTriangle = CTriangle("Test Triangle", { v1, supportPointA, supportPointB});
@@ -125,15 +125,18 @@ CShape CShape::CalculateMinkowskiShape(const MinkowskiType& minkowskiType, const
             v.m_Position.m_Y = -v.m_Position.m_Y;
             v.m_Position.m_Z = -v.m_Position.m_Z;
         }
+#ifdef _DEBUG
         std::cout << CShape("Negated Shape", bShape.m_Vertices);
+#endif
     }
 
     std::vector<Vertex> vertices;
-    for (const Vertex vA : aShape.GetVertices())
+    for (const auto& a : aShape.GetVertices())
     {
-        // If performing difference, we want the opposite most point.
-        Vertex vB = bShape.FindMostDirectPoint(vA);
-        vertices.push_back({ vA + vB });
+        for (const auto& b : bShape.GetVertices())
+        {
+            vertices.push_back(a + b);
+        }
     }
 
     std::string name = minkowskiType == MinkowskiType::Sum ? "Minkowski Sum" : "Minkowski Difference";

@@ -42,7 +42,7 @@ bool MinkowskiTests::TriangleSquare_NoIntersection()
     std::cout << "No TriangleSquare_Intersection Tests" << std::endl;
     std::cout << "===========================================" << std::endl;
 
-    CShape triangle("Triangle", { Vertex{-2, 1.0f, 0.0f}, Vertex{-2.0f, -1.0f, 0.0f}, Vertex{-1.0f, 0.0f, 0.0f} });
+    CShape triangle("Triangle", { Vertex{-3.0f, 2.0f, 0.0f}, Vertex{-3.0f, -2.0f, 0.0f}, Vertex{-1.0f, 0.0f, 0.0f} });
     CShape square("Square", { Vertex{0.0f, 0.0f, 0.0f}, Vertex{0.0f, -2.0f, 0.0f}, Vertex{2.0f, 0.0f, 0.0f}, Vertex{2.0f, -2.0f, 0.0f} });
     std::cout << triangle << std::endl << square << std::endl;
 
@@ -55,8 +55,8 @@ bool MinkowskiTests::TriangleSquare_Intersection()
     std::cout << "TriangleSquare_Intersection Tests" << std::endl;
     std::cout << "===========================================" << std::endl;
 
-    CShape triangle("Triangle", { Vertex{-2, 1.0f, 0.0f}, Vertex{-2.0f, -1.0f, 0.0f}, Vertex{1.0f, 0.0f, 0.0f} });
-    CShape square("Square", { Vertex{0.0f, 0.0f, 0.0f}, Vertex{0.0f, -2.0f, 0.0f}, Vertex{2.0f, 0.0f, 0.0f}, Vertex{2.0f, -2.0f, 0.0f} });
+    CShape triangle("Triangle", { Vertex{-3.0f, 1.0f, 0.0f}, Vertex{-3.0f, -1.0f, 0.0f}, Vertex{2.0f, 0.0f, 0.0f} });
+    CShape square("Square", { Vertex{1.0f, 0.0f, 0.0f}, Vertex{1.0f, -2.0f, 0.0f}, Vertex{3.0f, 0.0f, 0.0f}, Vertex{3.0f, -2.0f, 0.0f} });
     std::cout << triangle << std::endl << square << std::endl;
 
     return triangle.IntersectsWith(square);
