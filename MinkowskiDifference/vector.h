@@ -9,6 +9,7 @@ struct Vector3
     static float DotProd(const Vector3& a, const Vector3& b);
     static float Distance(const Vector3& a, const Vector3& b);
     static Vector3 CrossProd(const Vector3 a, const Vector3& b);
+    static Vector3 Zero() { return Vector3(0.0f, 0.0f, 0.0f); };
 
     bool operator==(const Vector3& rhs) const;
     bool operator>(const Vector3& rhs) const;
