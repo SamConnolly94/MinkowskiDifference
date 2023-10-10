@@ -81,8 +81,10 @@ bool CShape::IntersectsWith(const CShape& other)
     Vertex supportPointA = minkowskiDifference.FindMostExtremePoint();
     Vertex supportPointB = minkowskiDifference.FindOppositeMostPoint(supportPointA);
 
+#ifdef _DEBUG
     std::cout << CShape("Support Points", { supportPointA, supportPointB }) << std::endl;
-
+#endif
+    
     bool aHasMoreVertices = GetVertices().size() > other.GetVertices().size() ? true : false;
 
     // NOTE:
@@ -94,9 +96,7 @@ bool CShape::IntersectsWith(const CShape& other)
             CTriangle testTriangle = CTriangle("Test Triangle", { v1, supportPointA, supportPointB});
             if (testTriangle.IsPointInTriangle(Vector3::Zero()))
             {
-                std::cout << testTriangle << std::endl << "INTERSECTION FOUND " << std::endl;
-                std::cout << "-------------------------------------------" << std::endl;
-
+                std::cout << testTriangle << std::endl << "INTERSECTION FOUND " << std::endl << std::endl;
                 return true;
             }
 
