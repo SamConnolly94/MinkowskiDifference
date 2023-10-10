@@ -1,16 +1,16 @@
 #pragma once
+
+#include "vector.h"
+
 struct Vertex
 {
     Vertex(float x, float y, float z);
-    float Length() const;
+    Vertex(Vector3 position);
     bool operator==(const Vertex& rhs) const;
-    bool operator>(const Vertex& rhs) const;
-    bool operator>=(const Vertex& rhs) const;
-    bool operator<(const Vertex& rhs) const;
-    bool operator<=(const Vertex& rhs) const;
+    Vertex operator+(const Vertex& rhs) const;
+    Vertex operator-(const Vertex& rhs) const;
+    Vertex operator*(const float& rhs) const;
 
-    float m_X{ 0.0f };
-    float m_Y{ 0.0f };
-    float m_Z{ 0.0f };
+    Vector3 m_Position{ 0.0f, 0.0f, 0.0f };
 };
 
