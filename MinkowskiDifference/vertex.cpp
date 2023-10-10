@@ -16,3 +16,18 @@ bool Vertex::operator==(const Vertex& rhs) const
 {
     return m_Position == rhs.m_Position;
 }
+
+Vertex Vertex::operator+(const Vertex& rhs) const
+{
+    return Vector3(m_Position + rhs.m_Position);
+}
+
+Vertex Vertex::operator-(const Vertex& rhs) const
+{
+    return Vector3(m_Position - rhs.m_Position);
+}
+
+Vertex Vertex::operator*(const float& rhs) const
+{
+    return Vertex(m_Position * rhs);
+}

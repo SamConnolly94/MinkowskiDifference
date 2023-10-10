@@ -27,6 +27,14 @@ float Vector3::Distance(const Vector3& a, const Vector3& b)
     return fabsf(dist);
 }
 
+Vector3 Vector3::CrossProd(const Vector3 a, const Vector3& b)
+{
+    float x = a.m_Y * b.m_Z - a.m_Z * b.m_Y;
+    float y = a.m_Z * b.m_X - a.m_X * b.m_Z;
+    float z = a.m_X * b.m_Y - a.m_Y * b.m_X;
+    return Vector3(x, y, z);
+}
+
 bool Vector3::operator==(const Vector3& rhs) const
 {
     return m_X == rhs.m_X && m_Y == rhs.m_Y && m_Z == rhs.m_Z;

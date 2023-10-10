@@ -6,10 +6,12 @@
 
 CShape::CShape(const std::initializer_list<Vertex>& initialiserList) : m_Vertices{ initialiserList }
 {
+    ReorderPolygon();
 }
 
 CShape::CShape(const std::vector<Vertex>& vertices) : m_Vertices{ vertices }
 {
+    ReorderPolygon();
 }
 
 const std::vector<Vertex>& CShape::GetVertices() const
@@ -38,4 +40,12 @@ Vertex CShape::FindMostExtremePoint()
 CShape CShape::operator=(const CShape& rhs) const
 {
     return CShape(rhs.m_Vertices);
+}
+
+void CShape::ReorderPolygon()
+{
+    std::sort(m_Vertices.begin(), m_Vertices.end(), [](const Vertex a, const Vertex b) {
+        bool yIsIdentical = a.m_Position.m_Y == b.m_Position.m_Y;
+        return a.m_Position.m_Y < b.m_Position.m_Y || (yIsIdentical && a.m_Position.m_X < b.m_Position.m_X) || ((yIsIdentical && a.m_Position.m_X == a.m_Position.m_X) && a.m_Position.m_Z < b.m_Position.m_Z);
+        });
 }

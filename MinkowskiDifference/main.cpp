@@ -10,6 +10,12 @@ using namespace std;
 constexpr int k_DebugRowCount = 5;
 constexpr int k_DebugColCount = 5;
 
+enum class MinkowskiType
+{
+    Sum,
+    Difference
+};
+
 float area(Vector3 v1, Vector3 v2, Vector3 v3)
 {
     return fabsf((v1.m_X * (v2.m_Y - v3.m_Y) + v2.m_X * (v3.m_Y - v1.m_Y) + v3.m_X * (v1.m_Y - v2.m_Y)) / 2.0f);
@@ -81,48 +87,44 @@ void PushVertexIfNotPresent(std::vector<Vertex>& result, Vector3 pos)
     }
 }
 
-CShape CalculateMinkowskiDifference(const CShape& a, const CShape& b)
+CShape CalculateMinkowskiShape(const MinkowskiType& minkowskiType, const CShape& a, const CShape& b)
 {
-    // TODO:
-    // We should be able to work out what size this should be.
-    // If so, let's change this to a std::array<> instead.
-    // At the very least, reserve the memory we'll take up.
-    std::vector<Vertex> vertices;
-
     bool aHasMoreVertices = a.GetVertices().size() > b.GetVertices().size();
-    CShape outer = aHasMoreVertices ? a : b;
-    CShape inner = aHasMoreVertices ? b : a;
+    std::vector<Vertex> aCyclicVertices =  aHasMoreVertices ? a.GetVertices() : b.GetVertices();
+    std::vector<Vertex> bCyclicVertices = aHasMoreVertices ? b.GetVertices() : a.GetVertices();
 
-    int outerIndex = 0;
-    int innerIndex = 0;
+    aCyclicVertices.push_back(aCyclicVertices[0]);
+    aCyclicVertices.push_back(aCyclicVertices[1]);
+    bCyclicVertices.push_back(bCyclicVertices[0]);
+    bCyclicVertices.push_back(bCyclicVertices[1]);
 
-    while (true)
+    std::vector<Vertex> vertices;
+    int i = 0;
+    int j = 0;
+
+    float sign = 1.0f;
+    switch (minkowskiType)
     {
-        Vertex v1 = outer.GetVertices()[outerIndex];
-        Vertex v2 = inner.GetVertices()[innerIndex];
+    case MinkowskiType::Difference:
+    {
+        sign = -1.0f;
+        break;
+    }
+    }
 
-        Vector3 pos = v1.m_Position - v2.m_Position;
-        PushVertexIfNotPresent(vertices, pos);
-
-        if (innerIndex < inner.GetVertices().size() - 1)
+    while (i != aCyclicVertices.size() - 2 && j != bCyclicVertices.size() - 2)
+    {
+        vertices.push_back(aCyclicVertices[i] + (bCyclicVertices[j] * sign));
+        Vector3 crossA = (aCyclicVertices[i + 1] - aCyclicVertices[i]).m_Position;
+        Vector3 crossB = (bCyclicVertices[j + 1] - bCyclicVertices[j]).m_Position; 
+        Vector3 crossProd = Vector3::CrossProd(crossA, crossB);
+        if (crossProd.m_Z >= 0.0f && i < aCyclicVertices.size() - 2)
         {
-            innerIndex++;
-            v2 = inner.GetVertices()[innerIndex];
-            pos = v1.m_Position - v2.m_Position;
-            PushVertexIfNotPresent(vertices, pos);
+            i++;
         }
-
-        if (outerIndex < outer.GetVertices().size() - 1)
+        if (crossProd.m_Z < 0.0f && j < bCyclicVertices.size() - 2)
         {
-            outerIndex++;
-            v1 = outer.GetVertices()[outerIndex];
-            pos = v1.m_Position - v2.m_Position;
-            PushVertexIfNotPresent(vertices, pos);
-        }
-
-        if (outerIndex >= outer.GetVertices().size() - 1 && innerIndex >= inner.GetVertices().size() - 1)
-        {
-            break;
+            j++;
         }
     }
 
@@ -132,7 +134,7 @@ CShape CalculateMinkowskiDifference(const CShape& a, const CShape& b)
 int main()
 {
     // Not using unique pointers purposefully, we know the size of an instance of CShape is X, we can get a tonne of them on the stack if we want.
-    CShape triangle({ Vertex{-2.0f, 2.0f, 0.0f}, Vertex{-2.0f, -2.0f, 0.0f}, Vertex{-1.0f, 0.0f, 0.0f} });
+    CShape triangle({ Vertex{-4.0f, 2.0f, 0.0f}, Vertex{-4.0f, -2.0f, 0.0f}, Vertex{5.0f, 0.0f, 0.0f} });
     Vertex triangleSupportPoint = triangle.FindMostExtremePoint();
     OutputShapeDebug(triangle, "Triangle");
 
@@ -143,13 +145,13 @@ int main()
     CShape minkowskiSupportPoints{ {triangleSupportPoint, squareSupportPoint} };
     OutputShapeDebug(minkowskiSupportPoints, "Support Points");
 
-    CShape minkowskiSum = CalculateMinkowskiDifference(triangle, square);
-    Vertex mostExtremeVertex = minkowskiSum.FindMostExtremePoint();
-    OutputShapeDebug(minkowskiSum, "Minkowski");
+    CShape minkowskiShape = CalculateMinkowskiShape(MinkowskiType::Difference, triangle, square);
+    Vertex mostExtremeVertex = minkowskiShape.FindMostExtremePoint();
+    OutputShapeDebug(minkowskiShape, "Minkowski");
 
     bool originInPoint = false;
     int i = 0;
-    for (Vertex v : minkowskiSum.GetVertices())
+    for (Vertex v : minkowskiShape.GetVertices())
     {
         if (v == squareSupportPoint || v == triangleSupportPoint)
         {

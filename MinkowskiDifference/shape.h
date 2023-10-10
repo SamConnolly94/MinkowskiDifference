@@ -17,6 +17,7 @@ public:
 
     CShape operator=(const CShape& rhs) const;
 
+    void ReorderPolygon();
 protected:
     std::vector<Vertex> m_Vertices;
 };
