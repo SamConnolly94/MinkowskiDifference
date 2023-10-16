@@ -8,13 +8,6 @@
 struct Vertex;
 struct Vector3;
 
-enum class MinkowskiType
-{
-    Sum,
-    Difference
-};
-
-
 class CShape
 {
 public:
@@ -33,13 +26,11 @@ public:
     // Logic
     bool IntersectsWith(const CShape& other);
 protected:
-    Vertex FindMostDirectPoint(const Vertex& point) const;
-    Vertex FindOppositeMostPoint(const Vertex& point) const;
-    Vertex FindOppositeMostPoint(const Vertex& point, const Vector3 dir) const;
-    bool PassesGjkSanityCheck(const Vector3& dirToPoint, const Vector3& pointFacing) const;
-    Vertex FindMostExtremePoint();
-    CShape CalculateMinkowskiShape(const MinkowskiType& minkowskiType, const CShape& other) const;
-    void ReorderPolygon();
+    Vertex FindMostDirectPoint(const Vector3& dir) const;
+    Vector3 GetCentrePoint() const;
+    bool HandleSimplex(std::vector<Vertex> simplex, Vector3& d) const;
+    bool LineCase(std::vector<Vertex> simplex, Vector3& d) const;
+    bool TriangleCase(std::vector<Vertex> simplex, Vector3& d) const;
 protected:
     std::vector<Vertex> m_Vertices;
     std::string m_Name{ "Shape" };

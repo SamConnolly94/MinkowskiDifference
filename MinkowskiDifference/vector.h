@@ -18,6 +18,7 @@ struct Vector3
     bool operator<=(const Vector3& rhs) const;
     Vector3 operator-(const Vector3& rhs) const;
     Vector3 operator*(const float x) const;
+    Vector3 operator/(const float x) const;
     Vector3 operator+(const Vector3& rhs) const;
 
     float m_X{ 0.0f };

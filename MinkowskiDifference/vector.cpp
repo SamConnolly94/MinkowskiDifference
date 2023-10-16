@@ -70,6 +70,11 @@ Vector3 Vector3::operator*(const float x) const
     return Vector3(m_X * x, m_Y * x, m_Z * x);
 }
 
+Vector3 Vector3::operator/(const float x) const
+{
+    return Vector3(m_X / x, m_Y / x, m_Z / x);
+}
+
 Vector3 Vector3::operator+(const Vector3& rhs) const
 {
     return Vector3(m_X + rhs.m_X, m_Y + rhs.m_Y, m_Z + rhs.m_Z);

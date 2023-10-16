@@ -9,11 +9,11 @@ bool MinkowskiTests::RunAllTests()
 {
     bool result = true;
 
-    //if (!TriangleSquare_NoIntersection())
-    //{
-    //    std::cout << "TriangleSquare_NoIntersection test case FAILED." << std::endl;
-    //    result = false;
-    //}
+    if (!TriangleSquare_NoIntersection())
+    {
+        std::cout << "TriangleSquare_NoIntersection test case FAILED." << std::endl;
+        result = false;
+    }
 
     if (!TriangleSquare_Intersection())
     {
@@ -32,6 +32,19 @@ bool MinkowskiTests::RunAllTests()
         std::cout << "PentagonPentagon_Intersection test case FAILED." << std::endl;
         result = false;
     }
+
+    if (!HexagonTriangle_NoIntersection())
+    {
+        std::cout << "PentagonPentagon_Intersection test case FAILED." << std::endl;
+        result = false;
+    }
+
+    if (!HexagonTriangle_Intersection())
+    {
+        std::cout << "PentagonPentagon_Intersection test case FAILED." << std::endl;
+        result = false;
+    }
+
 
     return result;
 }
@@ -87,4 +100,44 @@ bool MinkowskiTests::PentagonPentagon_Intersection()
     std::cout << p1 << std::endl << p2 << std::endl;
 
     return p1.IntersectsWith(p2);
+}
+
+bool MinkowskiTests::HexagonTriangle_NoIntersection()
+{
+    std::cout << "===========================================" << std::endl;
+    std::cout << "HexagonTriangle_NoIntersection Tests" << std::endl;
+    std::cout << "===========================================" << std::endl;
+
+    CShape hexagon("Hexagon", { 
+        Vertex{-3.0f, -3.0f, 0.0f},
+        Vertex{-4.5f, -1.5f, 0.0f},
+        Vertex{-4.5f, 1.5f, 0.0f}, 
+        Vertex{-3.0f, 3.0f, 0.0f}, 
+        Vertex{-1.5f, 1.5f, 0.0f}, 
+        Vertex{-1.5f, -1.5f, 0.0f} }
+    );
+    CShape triangle("Triangle", { Vertex{0.0f, 2.0f, 0.0f}, Vertex{0.0f, -2.0f, 0.0f}, Vertex{4.0f, 0.0f, 0.0f} });
+    std::cout << hexagon << std::endl << triangle << std::endl;
+
+    return !hexagon.IntersectsWith(triangle);
+}
+
+bool MinkowskiTests::HexagonTriangle_Intersection()
+{
+    std::cout << "===========================================" << std::endl;
+    std::cout << "HexagonTriangle_Intersection Tests" << std::endl;
+    std::cout << "===========================================" << std::endl;
+
+    CShape hexagon("Hexagon", {
+        Vertex{-3.0f, -3.0f, 0.0f},
+        Vertex{-4.5f, -1.5f, 0.0f},
+        Vertex{-4.5f, 1.5f, 0.0f},
+        Vertex{-3.0f, 3.0f, 0.0f},
+        Vertex{-1.5f, 1.5f, 0.0f},
+        Vertex{-1.5f, -1.5f, 0.0f} }
+    );
+    CShape triangle("Triangle", { Vertex{-5.0f, 2.0f, 0.0f}, Vertex{-5.0f, -2.0f, 0.0f}, Vertex{4.0f, 0.0f, 0.0f} });
+    std::cout << hexagon << std::endl << triangle << std::endl;
+
+    return hexagon.IntersectsWith(triangle);
 }

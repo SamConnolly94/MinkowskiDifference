@@ -1,6 +1,5 @@
 #include "shape.h"
 
-#include "triangle.h"
 #include "shapedebug.h"
 #include "vertex.h"
 
@@ -9,12 +8,10 @@
 
 CShape::CShape(const std::string& name, const std::initializer_list<Vertex>& initialiserList) : m_Name(name), m_Vertices{ initialiserList }
 {
-    ReorderPolygon();
 }
 
 CShape::CShape(const std::string& name, const std::vector<Vertex>& vertices) : m_Name(name), m_Vertices{ vertices }
 {
-    ReorderPolygon();
 }
 
 const std::vector<Vertex>& CShape::GetVertices() const
@@ -22,61 +19,26 @@ const std::vector<Vertex>& CShape::GetVertices() const
     return m_Vertices;
 }
 
-Vertex CShape::FindMostDirectPoint(const Vertex& point) const
+Vertex CShape::FindMostDirectPoint(const Vector3& dir) const
 {
-    const Vector3 dir = point.m_Position.GetNormalised();
-
     auto result = std::max_element(m_Vertices.begin(), m_Vertices.end(), [&](const Vertex& a, const Vertex& b) {
         // Purposefully not normalising the dot prod here so that it scales with the magnitude of the vector
         return Vector3::DotProd(a.m_Position, dir) < Vector3::DotProd(b.m_Position, dir);
         });
+    // TODO: Handle what happens when one isn't found.
     return *(result);
 }
 
-Vertex CShape::FindOppositeMostPoint(const Vertex& point) const
+Vector3 CShape::GetCentrePoint() const
 {
-    const Vector3 dir = point.m_Position.GetNormalised();
-    return FindOppositeMostPoint(point, dir);
-}
-
-Vertex CShape::FindOppositeMostPoint(const Vertex& point, const Vector3 dir) const
-{
-    auto v = std::max_element(m_Vertices.begin(), m_Vertices.end(), [&](const Vertex& a, const Vertex& b) {
-        // Purposefully not normalising the dot prod here so that it scales with the magnitude of the vector
-        return Vector3::DotProd(a.m_Position, dir) > Vector3::DotProd(b.m_Position, dir);
-        });
-    return *v;
-}
-
-bool CShape::PassesGjkSanityCheck(const Vector3& pos, const Vector3& pointFacing) const
-{
-    Vector3 inverseDirToPoint = (Vector3::Zero() - pos).GetNormalised();
-
-    // Sanity check if we got past the origin at this point
-    const float dotProd = Vector3::DotProd(inverseDirToPoint, pointFacing);
-    if (dotProd < 0.0f)
+    Vector3 result = Vector3::Zero();
+    for (Vertex v : m_Vertices)
     {
-        // Can't possibly be intersecting because C1's dir from origin does not point in the same direction as C2's dir
-        return false;
+        result = result + v.m_Position;
     }
 
-    return true;
-}
-
-Vertex CShape::FindMostExtremePoint()
-{
-    auto it = std::max_element(m_Vertices.begin(), m_Vertices.end(), [&](const Vertex& a, const Vertex& b) {
-        return a.m_Position.Length() < b.m_Position.Length();
-        });
-    return *it;
-}
-
-void CShape::ReorderPolygon()
-{
-    std::sort(m_Vertices.begin(), m_Vertices.end(), [](const Vertex a, const Vertex b) {
-        bool yIsIdentical = a.m_Position.m_Y == b.m_Position.m_Y;
-        return a.m_Position.m_Y < b.m_Position.m_Y || (yIsIdentical && a.m_Position.m_X < b.m_Position.m_X) || ((yIsIdentical && a.m_Position.m_X == a.m_Position.m_X) && a.m_Position.m_Z < b.m_Position.m_Z);
-        });
+    result = result / static_cast<float>(m_Vertices.size());
+    return result;
 }
 
 CShape CShape::operator=(const CShape& rhs) const
@@ -89,90 +51,117 @@ std::ostream& operator<<(std::ostream& os, const CShape& shape)
     return os << CShapeDebug::GetDebugGrid(shape, shape.GetName());
 }
 
-bool CShape::IntersectsWith(const CShape& other)
+bool CShape::HandleSimplex(std::vector<Vertex> simplex, Vector3& d) const
 {
-    // Select first point
-    Vertex a1 = FindMostExtremePoint();
-    Vertex b1 = other.FindOppositeMostPoint(a1);
-    Vertex c1 = a1 - b1;
-
-    // Select second point
-    Vertex a2 = FindOppositeMostPoint(a1);
-    Vertex b2 = other.FindOppositeMostPoint(a2);
-    Vertex c2 = a2 - b2;
-
-    if (!PassesGjkSanityCheck(c1.m_Position, c2.m_Position.GetNormalised()))
+    if (simplex.size() == 2)
     {
-        return false;
+        return LineCase(simplex, d);
     }
+    return TriangleCase(simplex, d);
+}
 
-    const float distance = Vector3::Distance(c1.m_Position, c2.m_Position);
-    const float halfDistance = distance / 2.0f;
+bool CShape::LineCase(std::vector<Vertex> simplex, Vector3& d) const
+{
+    // Assuming there's only 2 points in a line case. If you're calling this manually, better make sure too ;p
+    Vector3 ab = simplex[0].m_Position - simplex[1].m_Position;
+    Vector3 ao = Vector3::Zero() - simplex[1].m_Position;
+    Vector3 abNormal = Vector3::CrossProd(ab, Vector3::CrossProd(ao, ab));
 
-    // Scoped because no need for anyone else to know about variables in this section, probably indicates it should move into it's own function
-    Vector3 c1toc2Dir = (Vector3::Zero() - c1.m_Position).GetNormalised();
+    // Setting the direction to our perpendicular vec to the origin. This is passed by ref so will be changed elsewhere.
+    d = abNormal.GetNormalised();
 
-    // Packing into a vertex to use with  helper functions, it's not really a vertex on the shape
-    Vertex halfwayPosition = { c1.m_Position + (c1toc2Dir * halfDistance) };
-
-    Vector3 lineNormal = Vector3{ halfwayPosition.m_Position.m_Y, -halfwayPosition.m_Position.m_X, halfwayPosition.m_Position.m_Z }.GetNormalised();
-
-    // Invert the noraml if it was facing the same direction as the origin
-    if (Vector3::DotProd(lineNormal, halfwayPosition.m_Position.GetNormalised()) > 0)
-    {
-        lineNormal = Vector3::Zero() - lineNormal;
-    }
-
-    Vertex a3 = FindOppositeMostPoint(halfwayPosition, lineNormal.GetNormalised());
-    Vertex b3 = other.FindOppositeMostPoint(a3);
-    Vertex c3 = a3 - b3;
-
-    CTriangle testTriangle = CTriangle("Test Triangle", { c1, c2, c3 });
-    if (testTriangle.IsPointInTriangle(Vector3::Zero()))
-    {
-        std::cout << testTriangle << std::endl << "INTERSECTION FOUND " << std::endl;
-        std::cout << "-------------------------------------------" << std::endl;
-
-        return true;
-    }
-
-#ifdef _DEBUG
-        std::cout << testTriangle << std::endl;
-#endif
-
+    // Only a line, cannot be contained within a simplex
     return false;
 }
 
-CShape CShape::CalculateMinkowskiShape(const MinkowskiType& minkowskiType, const CShape& other) const
+bool CShape::TriangleCase(std::vector<Vertex> simplex, Vector3& d) const
 {
-    bool aHasMoreVertices = GetVertices().size() > other.GetVertices().size() ? true : false;
+#ifdef _DEBUG
+    CShape testTriangle = CShape("Testing Simplex", simplex);
+    std::cout << testTriangle << std::endl;
+#endif
+    Vector3 ab = simplex[1].m_Position - simplex[2].m_Position;
+    Vector3 ac = simplex[0].m_Position - simplex[2].m_Position;
+    Vector3 ao = Vector3::Zero() - simplex[2].m_Position;
 
-    CShape aShape = aHasMoreVertices ? CShape{ "a", GetVertices() } : CShape{ "b", other.GetVertices() };
-    CShape bShape = aHasMoreVertices ? CShape{ "b", other.GetVertices() } : CShape{ "a", GetVertices() };
+    Vector3 abPerpendicular = Vector3::CrossProd(ac, Vector3::CrossProd(ab, ab)).GetNormalised();
+    Vector3 acPerpendicular = Vector3::CrossProd(ab, Vector3::CrossProd(ac, ac)).GetNormalised();
 
-    // Invert the positions of the shape if performing difference.
-    if (minkowskiType == MinkowskiType::Difference)
+    /*A
+    | \
+    |   \   * Origin lying somewhere in this region, let's remove C
+    |     \
+    |       \
+    |         \
+    C___________ B
+    */
+    if (Vector3::DotProd(abPerpendicular, ao.GetNormalised()) > 0)
     {
-        for (auto& v : bShape.m_Vertices)
+        d = abPerpendicular;
+        simplex.erase(simplex.begin() + 2);
+        return false;
+    }
+    /*A
+    | \
+   *|   \
+    |     \
+    |       \
+    |         \
+    C___________ B
+   origin lying somewhere over to the left side of AC, pointless having B, let's remove it
+   */
+    else if (Vector3::DotProd(acPerpendicular, ao.GetNormalised()) > 0)
+    {
+        d = acPerpendicular;
+        simplex.erase(simplex.begin() + 1);
+        return false;
+    }
+
+    // If neither of the above cases match, we can be assured that the triangle contains the origin
+    return true;
+}
+
+bool CShape::IntersectsWith(const CShape& other)
+{
+    const CShape aShape = this->GetVertices().size() > other.GetVertices().size() ? *this : other;
+    const CShape bShape = this->GetVertices().size() > other.GetVertices().size() ? other : *this;
+
+    Vector3 d = (bShape.GetCentrePoint() - aShape.GetCentrePoint()).GetNormalised();
+    Vertex a1 = aShape.FindMostDirectPoint(d);
+    Vertex b1 = bShape.FindMostDirectPoint(Vector3::Zero() - d);
+    Vertex s1 = a1 - b1;
+
+    d = (Vector3::Zero() - s1.m_Position).GetNormalised();
+    std::vector<Vertex> simplex = { s1 };
+    while (true)
+    {
+        Vertex a2 = aShape.FindMostDirectPoint(d);
+        Vertex b2 = bShape.FindMostDirectPoint(Vector3::Zero() - d);
+        Vertex s2 = a2 - b2;
+
+#ifdef _DEBUG
+        CShape testTriangle = CShape("Support Points", {s1, s2});
+        std::cout << testTriangle << std::endl;
+#endif
+        if (Vector3::DotProd(s2.m_Position.GetNormalised(), d) < 0.0f)
         {
-            v.m_Position.m_X = -v.m_Position.m_X;
-            v.m_Position.m_Y = -v.m_Position.m_Y;
-            v.m_Position.m_Z = -v.m_Position.m_Z;
+            return false;
         }
-        std::cout << CShape("Negated Shape", bShape.m_Vertices);
+
+        simplex.push_back(s2);
+        if (HandleSimplex(simplex, d))
+        {
+            CShape testTriangle = CShape("Test Triangle", simplex);
+#ifdef _DEBUG
+            std::cout << testTriangle << std::endl;
+#endif
+            return true;
+        }
     }
 
-    std::vector<Vertex> vertices;
-    for (const Vertex vA : aShape.GetVertices())
-    {
-        // If performing difference, we want the opposite most point.
-        Vertex vB = bShape.FindMostDirectPoint(vA);
-        vertices.push_back({ vA + vB });
-    }
+    // Still not found
 
-    std::string name = minkowskiType == MinkowskiType::Sum ? "Minkowski Sum" : "Minkowski Difference";
-
-    return CShape{ name, vertices };
+    return false;
 }
 
 const std::string& CShape::GetName() const
