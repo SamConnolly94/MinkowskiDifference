@@ -36,12 +36,31 @@ Vertex CShape::FindMostDirectPoint(const Vertex& point) const
 Vertex CShape::FindOppositeMostPoint(const Vertex& point) const
 {
     const Vector3 dir = point.m_Position.GetNormalised();
+    return FindOppositeMostPoint(point, dir);
+}
 
-    auto result = std::max_element(m_Vertices.begin(), m_Vertices.end(), [&](const Vertex& a, const Vertex& b) {
+Vertex CShape::FindOppositeMostPoint(const Vertex& point, const Vector3 dir) const
+{
+    auto v = std::max_element(m_Vertices.begin(), m_Vertices.end(), [&](const Vertex& a, const Vertex& b) {
         // Purposefully not normalising the dot prod here so that it scales with the magnitude of the vector
         return Vector3::DotProd(a.m_Position, dir) > Vector3::DotProd(b.m_Position, dir);
         });
-    return *(result);
+    return *v;
+}
+
+bool CShape::PassesGjkSanityCheck(const Vector3& pos, const Vector3& pointFacing) const
+{
+    Vector3 inverseDirToPoint = (Vector3::Zero() - pos).GetNormalised();
+
+    // Sanity check if we got past the origin at this point
+    const float dotProd = Vector3::DotProd(inverseDirToPoint, pointFacing);
+    if (dotProd < 0.0f)
+    {
+        // Can't possibly be intersecting because C1's dir from origin does not point in the same direction as C2's dir
+        return false;
+    }
+
+    return true;
 }
 
 Vertex CShape::FindMostExtremePoint()
@@ -72,40 +91,55 @@ std::ostream& operator<<(std::ostream& os, const CShape& shape)
 
 bool CShape::IntersectsWith(const CShape& other)
 {
-    //CShape minkowskiShape = CalculateMinkowskiShape(MinkowskiType::Difference, other);
-    //std::cout << minkowskiShape << std::endl;
+    // Select first point
+    Vertex a1 = FindMostExtremePoint();
+    Vertex b1 = other.FindOppositeMostPoint(a1);
+    Vertex c1 = a1 - b1;
 
-    CShape minkowskiDifference = CalculateMinkowskiShape(MinkowskiType::Difference, other);
-    std::cout << minkowskiDifference << std::endl;
+    // Select second point
+    Vertex a2 = FindOppositeMostPoint(a1);
+    Vertex b2 = other.FindOppositeMostPoint(a2);
+    Vertex c2 = a2 - b2;
 
-    Vertex supportPointA = minkowskiDifference.FindMostExtremePoint();
-    Vertex supportPointB = minkowskiDifference.FindOppositeMostPoint(supportPointA);
-
-    std::cout << CShape("Support Points", { supportPointA, supportPointB }) << std::endl;
-
-    bool aHasMoreVertices = GetVertices().size() > other.GetVertices().size() ? true : false;
-
-    // NOTE:
-    // At the moment this is pretty innefficient. There's something called the GJK algorithm, which should
-    // drastically improve the search time. Right now we're just brute forcing it to check every point for 
-    // an intersection. Check out https://youtu.be/ajv46BSqcK4 for a good vid.
-    for (Vertex v1 : minkowskiDifference.m_Vertices)
+    if (!PassesGjkSanityCheck(c1.m_Position, c2.m_Position.GetNormalised()))
     {
-            CTriangle testTriangle = CTriangle("Test Triangle", { v1, supportPointA, supportPointB});
-            if (testTriangle.IsPointInTriangle(Vector3::Zero()))
-            {
-                std::cout << testTriangle << std::endl << "INTERSECTION FOUND " << std::endl;
-                std::cout << "-------------------------------------------" << std::endl;
-
-                return true;
-            }
-
-#ifdef _DEBUG
-            std::cout << testTriangle << std::endl;
-#endif
+        return false;
     }
 
-    std::cout << "NO INTERSECTION WAS FOUND." << std::endl << std::endl;
+    const float distance = Vector3::Distance(c1.m_Position, c2.m_Position);
+    const float halfDistance = distance / 2.0f;
+
+    // Scoped because no need for anyone else to know about variables in this section, probably indicates it should move into it's own function
+    Vector3 c1toc2Dir = (Vector3::Zero() - c1.m_Position).GetNormalised();
+
+    // Packing into a vertex to use with  helper functions, it's not really a vertex on the shape
+    Vertex halfwayPosition = { c1.m_Position + (c1toc2Dir * halfDistance) };
+
+    Vector3 lineNormal = Vector3{ halfwayPosition.m_Position.m_Y, -halfwayPosition.m_Position.m_X, halfwayPosition.m_Position.m_Z }.GetNormalised();
+
+    // Invert the noraml if it was facing the same direction as the origin
+    if (Vector3::DotProd(lineNormal, halfwayPosition.m_Position.GetNormalised()) > 0)
+    {
+        lineNormal = Vector3::Zero() - lineNormal;
+    }
+
+    Vertex a3 = FindOppositeMostPoint(halfwayPosition, lineNormal.GetNormalised());
+    Vertex b3 = other.FindOppositeMostPoint(a3);
+    Vertex c3 = a3 - b3;
+
+    CTriangle testTriangle = CTriangle("Test Triangle", { c1, c2, c3 });
+    if (testTriangle.IsPointInTriangle(Vector3::Zero()))
+    {
+        std::cout << testTriangle << std::endl << "INTERSECTION FOUND " << std::endl;
+        std::cout << "-------------------------------------------" << std::endl;
+
+        return true;
+    }
+
+#ifdef _DEBUG
+        std::cout << testTriangle << std::endl;
+#endif
+
     return false;
 }
 

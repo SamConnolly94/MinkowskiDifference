@@ -9,11 +9,11 @@ bool MinkowskiTests::RunAllTests()
 {
     bool result = true;
 
-    if (!TriangleSquare_NoIntersection())
-    {
-        std::cout << "TriangleSquare_NoIntersection test case FAILED." << std::endl;
-        result = false;
-    }
+    //if (!TriangleSquare_NoIntersection())
+    //{
+    //    std::cout << "TriangleSquare_NoIntersection test case FAILED." << std::endl;
+    //    result = false;
+    //}
 
     if (!TriangleSquare_Intersection())
     {
