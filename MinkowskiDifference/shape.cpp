@@ -25,7 +25,6 @@ Vertex CShape::FindMostDirectPoint(const Vector3& dir) const
         // Purposefully not normalising the dot prod here so that it scales with the magnitude of the vector
         return Vector3::DotProd(a.m_Position, dir) < Vector3::DotProd(b.m_Position, dir);
         });
-    // TODO: Handle what happens when one isn't found.
     return *(result);
 }
 
