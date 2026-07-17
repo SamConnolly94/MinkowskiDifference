@@ -130,7 +130,6 @@
     <ClCompile Include="shape.cpp" />
     <ClCompile Include="shapedebug.cpp" />
     <ClCompile Include="tests.cpp" />
-    <ClCompile Include="triangle.cpp" />
     <ClCompile Include="vector.cpp" />
     <ClCompile Include="vertex.cpp" />
     <ClCompile Include="main.cpp" />
@@ -139,7 +138,6 @@
     <ClInclude Include="shape.h" />
     <ClInclude Include="shapedebug.h" />
     <ClInclude Include="tests.h" />
-    <ClInclude Include="triangle.h" />
     <ClInclude Include="vector.h" />
     <ClInclude Include="vertex.h" />
   </ItemGroup>
